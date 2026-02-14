@@ -1,0 +1,21 @@
+---
+description: Rules for validating Deno edge function changes
+globs: supabase/functions/**/*.ts
+---
+
+# Deno Edge Function QA
+
+## Running Tests
+- Navigate to the function directory
+- Run: `deno test`
+
+## Type Checking
+- Deno has built-in TypeScript support
+- Run: `deno check <file.ts>`
+
+## Manual Testing
+- Start Supabase: `npx supabase start`
+- Serve functions: `npx supabase functions serve --no-verify-jwt`
+- Test with curl:
+  - `curl http://127.0.0.1:54321/functions/v1/get-incoming-apple -H "Content-Type: application/json" -d '{}'`
+  - `curl http://127.0.0.1:54321/functions/v1/get-incoming-orange -H "Content-Type: application/json" -d '{}'`

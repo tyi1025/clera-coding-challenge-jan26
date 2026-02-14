@@ -1,0 +1,39 @@
+---
+description: Frontend conventions for Next.js, React, Tailwind, Zustand, and Effect
+globs: frontend/**/*.{ts,tsx}
+---
+
+# Frontend Conventions
+
+## Next.js App Router
+- Use the App Router (`app/` directory)
+- Server Components are the default - use `'use client'` only when needed
+- Use `loader.ts` files to organize server-side data fetching logic (project convention)
+- Keep page components thin - extract logic to hooks and utilities
+
+## React Patterns
+- Prefer functional components with hooks
+- Use TypeScript for all components with proper type definitions
+- Keep components small and focused on a single responsibility
+
+## State Management (Zustand)
+- Store definitions live in `lib/store.ts`
+- Store uses `devtools` and `persist` middleware
+- Can only be used in Client Components (add `'use client'` directive)
+- Keep stores focused and split by domain if needed
+- Use selectors (e.g., `selectActiveConversation`) to minimize re-renders
+
+## Effect Library
+- Use Effect for complex async operations and error handling
+- Prefer Effect pipelines for data transformation
+- Handle errors explicitly using Effect's error channel
+
+## Styling (Tailwind CSS v4)
+- Use Tailwind utility classes directly in JSX
+- CSS variables for colors/theme are defined in `globals.css`
+- Extract repeated patterns to reusable component abstractions
+
+## Routing
+- Routes are defined by the file system in `app/` directory
+- Dashboard is at `/dashboard`
+- Root `/` redirects to dashboard

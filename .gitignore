@@ -47,3 +47,5 @@ coverage/
 *.log
 .vercel
 
+# SurrealDB
+surrealdb-data/

@@ -1,0 +1,32 @@
+---
+description: Conventions for Supabase Edge Functions written in Deno
+globs: supabase/functions/**/*.ts
+---
+
+# Deno Edge Function Conventions
+
+## File Structure
+- Each function lives in its own directory under `supabase/functions/`
+- Shared code goes in `_shared/` directory
+- Each function directory has its own `deno.json` for dependencies
+
+## Imports
+- Use JSR imports for Supabase packages: `jsr:@supabase/functions-js`
+- Use URL imports for Deno std library
+- Shared imports defined in `_shared/deno.json`
+
+## Edge Function Pattern
+- Export a default handler using `Deno.serve()`
+- Return proper JSON responses with appropriate status codes
+- Handle errors gracefully and return meaningful error messages
+
+## Shared Utilities
+- `generateFruit.ts` contains fruit generation and communication functions
+- `generateApple()` / `generateOrange()` - create new fruit instances
+- `communicateAttributes(fruit)` - human-readable description of fruit
+- `communicatePreferences(fruit)` - human-readable preference description
+
+## Testing
+- Tests use Deno's built-in test runner
+- Test files are named `*.test.ts`
+- Import assertions from `std/assert`
