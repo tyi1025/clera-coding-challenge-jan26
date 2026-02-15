@@ -113,11 +113,10 @@ export async function storeApple(fruit: Fruit): Promise<StoredApple> {
   });
 
   if (!result || (Array.isArray(result) && result.length === 0)) {
-    throw new Error("Failed to store apple in database");
+    throw new Error("Failed to store apple in database: No result returned from database operation");
   }
 
-  const stored = Array.isArray(result) ? result[0] : result;
-  return stored;
+  return Array.isArray(result) ? result[0] : result;
 }
 
 /**
@@ -167,11 +166,10 @@ export async function storeOrange(fruit: Fruit): Promise<StoredOrange> {
   });
 
   if (!result || (Array.isArray(result) && result.length === 0)) {
-    throw new Error("Failed to store orange in database");
+    throw new Error("Failed to store orange in database: No result returned from database operation");
   }
 
-  const stored = Array.isArray(result) ? result[0] : result;
-  return stored;
+  return Array.isArray(result) ? result[0] : result;
 }
 
 /**
@@ -239,11 +237,10 @@ export async function storeMatch(match: Omit<Match, "id">): Promise<Match> {
   const result = await database.create<Match>("match", match);
 
   if (!result || (Array.isArray(result) && result.length === 0)) {
-    throw new Error("Failed to store match in database");
+    throw new Error("Failed to store match in database: No result returned from database operation");
   }
 
-  const stored = Array.isArray(result) ? result[0] : result;
-  return stored;
+  return Array.isArray(result) ? result[0] : result;
 }
 
 /**

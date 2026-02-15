@@ -6,7 +6,7 @@
  * how well potential matches satisfy those preferences.
  */
 
-import type { Fruit, FruitAttributes, FruitPreferences, ShineFactor } from "./generateFruit.ts";
+import type { Fruit, ShineFactor } from "./generateFruit.ts";
 import type { StoredApple, StoredOrange } from "./db.ts";
 
 type StoredFruit = StoredApple | StoredOrange;
@@ -15,19 +15,29 @@ type StoredFruit = StoredApple | StoredOrange;
 // Constants
 // ============================================================================
 
-// Weights for different preference types (can be tuned)
+// Weights for different preference types (higher weight = more important)
 const PREFERENCE_WEIGHTS = {
-  size: 1.0,
-  weight: 1.0,
-  hasStem: 0.8,
-  hasLeaf: 0.6,
-  hasWorm: 1.5, // Worm preference is important!
-  shineFactor: 0.7,
-  hasChemicals: 0.9,
+  size: 1.0,           // Standard importance for size matching
+  weight: 1.0,         // Standard importance for weight matching
+  hasStem: 0.8,        // Slightly less important aesthetic feature
+  hasLeaf: 0.6,        // Least important aesthetic feature
+  hasWorm: 1.5,        // Very important - worms are a dealbreaker for most!
+  shineFactor: 0.7,    // Moderate importance for appearance
+  hasChemicals: 0.9,   // Important for organic/natural preferences
 };
 
+// Score given when an attribute value is null/unknown (neutral - neither good nor bad)
+const UNKNOWN_ATTRIBUTE_SCORE = 0.5;
+
 // Minimum score threshold for a match to be considered valid
-const MIN_MATCH_SCORE = 0.0; // Accept all matches for now, can raise later
+// Currently set to 0.0 to accept all matches (can be raised to filter low-quality matches)
+const MIN_MATCH_SCORE = 0.0;
+
+// Threshold for considering a preference "matched" (80% match or better)
+const PREFERENCE_MATCH_THRESHOLD = 0.8;
+
+// Precision for rounding final scores (3 decimal places)
+const SCORE_ROUNDING_PRECISION = 1000;
 
 // ============================================================================
 // Types
@@ -71,7 +81,7 @@ function scoreNumericRange(
 
   // If value is null/unknown, assume neutral score
   if (value === null) {
-    return 0.5;
+    return UNKNOWN_ATTRIBUTE_SCORE;
   }
 
   const { min, max } = preference;
@@ -201,7 +211,7 @@ export function calculateMatchScore(
       actual: attributes.size,
       score,
     };
-    if (score >= 0.8) details.matchedPreferences++;
+    if (score >= PREFERENCE_MATCH_THRESHOLD) details.matchedPreferences++;
   }
 
   // Score weight preference
@@ -220,7 +230,7 @@ export function calculateMatchScore(
       actual: attributes.weight,
       score,
     };
-    if (score >= 0.8) details.matchedPreferences++;
+    if (score >= PREFERENCE_MATCH_THRESHOLD) details.matchedPreferences++;
   }
 
   // Score hasStem preference
@@ -235,7 +245,7 @@ export function calculateMatchScore(
       actual: attributes.hasStem,
       score,
     };
-    if (score >= 0.8) details.matchedPreferences++;
+    if (score >= PREFERENCE_MATCH_THRESHOLD) details.matchedPreferences++;
   }
 
   // Score hasLeaf preference
@@ -250,7 +260,7 @@ export function calculateMatchScore(
       actual: attributes.hasLeaf,
       score,
     };
-    if (score >= 0.8) details.matchedPreferences++;
+    if (score >= PREFERENCE_MATCH_THRESHOLD) details.matchedPreferences++;
   }
 
   // Score hasWorm preference (important!)
@@ -265,7 +275,7 @@ export function calculateMatchScore(
       actual: attributes.hasWorm,
       score,
     };
-    if (score >= 0.8) details.matchedPreferences++;
+    if (score >= PREFERENCE_MATCH_THRESHOLD) details.matchedPreferences++;
   }
 
   // Score shineFactor preference
@@ -283,7 +293,7 @@ export function calculateMatchScore(
       actual: attributes.shineFactor,
       score,
     };
-    if (score >= 0.8) details.matchedPreferences++;
+    if (score >= PREFERENCE_MATCH_THRESHOLD) details.matchedPreferences++;
   }
 
   // Score hasChemicals preference
@@ -298,12 +308,12 @@ export function calculateMatchScore(
       actual: attributes.hasChemicals,
       score,
     };
-    if (score >= 0.8) details.matchedPreferences++;
+    if (score >= PREFERENCE_MATCH_THRESHOLD) details.matchedPreferences++;
   }
 
   // Calculate final score (0-1 range)
   const finalScore = totalWeight > 0 ? totalWeightedScore / totalWeight : 1.0;
-  details.totalScore = Math.round(finalScore * 1000) / 1000; // Round to 3 decimals
+  details.totalScore = Math.round(finalScore * SCORE_ROUNDING_PRECISION) / SCORE_ROUNDING_PRECISION;
 
   return {
     fruit: candidate,

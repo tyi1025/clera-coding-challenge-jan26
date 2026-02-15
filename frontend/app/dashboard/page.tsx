@@ -1,6 +1,6 @@
 "use client";
 
-import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount } from "@/lib/store";
+import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount, selectAverageMatchScore } from "@/lib/store";
 import { Conversation } from "@/app/components/Conversation";
 
 // =============================================================================
@@ -42,6 +42,7 @@ export default function DashboardPage() {
   const appleCount = useMatchmakingStore(selectAppleCount);
   const orangeCount = useMatchmakingStore(selectOrangeCount);
   const matchCount = useMatchmakingStore(selectMatchCount);
+  const avgScore = useMatchmakingStore(selectAverageMatchScore);
 
   const handleNewConversation = async () => {
     // Randomly pick apple or orange
@@ -102,7 +103,7 @@ export default function DashboardPage() {
             />
             <MetricCard
               title="Avg Score"
-              value={matchCount > 0 ? "~85%" : "N/A"}
+              value={matchCount > 0 ? `${avgScore}%` : "N/A"}
               icon="📊"
               description="Match quality"
             />

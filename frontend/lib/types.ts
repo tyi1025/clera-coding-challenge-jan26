@@ -2,31 +2,46 @@
 // SHARED TYPE DEFINITIONS
 // =============================================================================
 // These types are used across API client, Zustand store, and components
+// They must match the backend schema defined in generateFruit.ts
+
+/**
+ * Shine factor enum matching backend ShineFactor type
+ */
+export type ShineFactor = "dull" | "neutral" | "shiny" | "extraShiny";
+
+/**
+ * Number range for preferences (min/max)
+ */
+export interface NumberRange {
+  min?: number;
+  max?: number;
+}
 
 /**
  * Fruit attributes - physical characteristics
+ * Matches backend FruitAttributes interface
  */
 export interface FruitAttributes {
-  color?: string;
-  size?: number;
-  sweetness?: number;
-  tartness?: number;
-  isOrganic?: boolean;
-  ripeness?: number;
-  hasSeeds?: boolean;
+  size: number | null;
+  weight: number | null;
+  hasStem: boolean | null;
+  hasLeaf: boolean | null;
+  hasWorm: boolean | null;
+  shineFactor: ShineFactor | null;
+  hasChemicals: boolean | null;
 }
 
 /**
  * Fruit preferences - what they're looking for in a match
+ * Matches backend FruitPreferences interface
  */
 export interface FruitPreferences {
-  minSize?: number;
-  maxSize?: number;
-  preferredColor?: string;
-  minSweetness?: number;
-  maxSweetness?: number;
-  wantsOrganic?: boolean;
-  hasSeeds?: boolean;
+  size?: NumberRange;
+  weight?: NumberRange;
+  hasStem?: boolean;
+  hasLeaf?: boolean;
+  hasWorm?: boolean;
+  shineFactor?: ShineFactor | ShineFactor[];
   hasChemicals?: boolean;
 }
 
@@ -62,10 +77,6 @@ export interface MatchmakingResponse {
     type: "apple" | "orange";
     attributes: FruitAttributes;
     preferences: FruitPreferences;
-  };
-  communication: {
-    attributes: string;
-    preferences: string;
   };
   matches: {
     count: number;

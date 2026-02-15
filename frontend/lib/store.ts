@@ -57,32 +57,14 @@ function transformResponseToConversation(
 ): Conversation {
   const conversationId = generateId();
   const now = new Date();
+  
+  const otherFruitType = response.fruit.type === "apple" ? "oranges" : "apples";
 
   const messages: ConversationMessage[] = [
     {
       id: generateId(),
-      role: "fruit",
-      content: response.communication.attributes,
-      timestamp: now,
-      metadata: {
-        fruitType: response.fruit.type,
-      },
-    },
-    {
-      id: generateId(),
-      role: "fruit",
-      content: response.communication.preferences,
-      timestamp: now,
-      metadata: {
-        fruitType: response.fruit.type,
-      },
-    },
-    {
-      id: generateId(),
       role: "system",
-      content: `🔍 Analyzing compatibility with ${
-        response.fruit.type === "apple" ? "oranges" : "apples"
-      }...`,
+      content: `🔍 New ${response.fruit.type} is looking for compatible ${otherFruitType}...`,
       timestamp: now,
     },
     {
@@ -233,12 +215,13 @@ export const useMatchmakingStore = create<MatchmakingState>()(
               };
               
               // Create Match objects (all matches for this apple)
+              // Note: record.score is apple→orange score, mutual_score is the average
               const matches: Match[] = response.match_records.map((record) => ({
                 id: record.match_id,
                 appleId: response.fruit.id,
                 orangeId: record.orange_id!,
                 appleToOrangeScore: record.score,
-                orangeToAppleScore: record.mutual_score,
+                orangeToAppleScore: record.mutual_score * 2 - record.score, // Derive from mutual = (a+b)/2
                 mutualScore: record.mutual_score,
                 llmResponse: response.llm_response,
                 createdAt: new Date(),
@@ -261,11 +244,12 @@ export const useMatchmakingStore = create<MatchmakingState>()(
               };
 
               // Create Match objects (all matches for this orange)
+              // Note: record.score is orange→apple score, mutual_score is the average
               const matches: Match[] = response.match_records.map((record) => ({
                 id: record.match_id,
                 appleId: record.apple_id!,
                 orangeId: response.fruit.id,
-                appleToOrangeScore: record.mutual_score,
+                appleToOrangeScore: record.mutual_score * 2 - record.score, // Derive from mutual = (a+b)/2
                 orangeToAppleScore: record.score,
                 mutualScore: record.mutual_score,
                 llmResponse: response.llm_response,

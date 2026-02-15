@@ -117,23 +117,3 @@ export async function initializeSchema(db: Surreal): Promise<void> {
   }
 }
 
-/**
- * Clears all data from the database (useful for testing/reset).
- */
-export async function clearDatabase(db: Surreal): Promise<void> {
-  console.log("🗑️  Clearing database...");
-
-  try {
-    await db.query(`
-      DELETE FROM match;
-      DELETE FROM apple;
-      DELETE FROM orange;
-    `);
-
-    console.log("✅ Database cleared");
-  } catch (error) {
-    console.error("❌ Failed to clear database:", error);
-    throw error;
-  }
-}
-

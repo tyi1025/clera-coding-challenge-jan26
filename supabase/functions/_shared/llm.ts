@@ -20,10 +20,17 @@ const GEMINI_MODEL = "gemini-2.5-flash";
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 // Generation parameters for creative matchmaking messages
-const LLM_TEMPERATURE = 0.9; // High creativity for varied, playful responses (0-2 range)
-const LLM_TOP_K = 40; // Consider top 40 tokens for balanced diversity
-const LLM_TOP_P = 0.95; // Nucleus sampling threshold for quality control (0-1 range)
-const MAX_OUTPUT_TOKENS = 500; // Maximum response length (~375-400 words)
+// Higher temperature = more creative/varied responses (range: 0-2)
+const LLM_TEMPERATURE = 0.9;
+
+// Consider top K tokens for balanced diversity (higher = more variety)
+const LLM_TOP_K = 40;
+
+// Nucleus sampling threshold for quality control (range: 0-1)
+const LLM_TOP_P = 0.95;
+
+// Maximum response length in tokens (~375-400 words)
+const MAX_OUTPUT_TOKENS = 500;
 
 // ============================================================================
 // Types
@@ -237,8 +244,7 @@ export async function generateMatchCommunication(
 ): Promise<string> {
   try {
     const prompt = createMatchPrompt(seekerType, seeker, matches);
-    const response = await callGemini(prompt);
-    return response;
+    return await callGemini(prompt);
   } catch (error) {
     console.error("Failed to generate match communication:", error);
     
@@ -249,6 +255,7 @@ export async function generateMatchCommunication(
 
 /**
  * Generates a simple fallback message if LLM fails.
+ * Used only in error scenarios, so messaging is straightforward and professional.
  */
 function generateFallbackMessage(
   seekerType: "apple" | "orange",
@@ -258,16 +265,16 @@ function generateFallbackMessage(
   const matchType = seekerType === "apple" ? "orange" : "apple";
   
   if (matches.length === 0) {
-    return `Welcome to the matchmaking system, dear ${seekerType}! We're currently building our pool of potential matches. You're now in our database, and we'll start finding compatible ${matchType}s as soon as they arrive. Stay tuned!`;
+    return `Your ${seekerType} has been added to our matchmaking system. We're currently looking for compatible ${matchType}s. You'll be notified when potential matches become available.`;
   }
 
   const bestMatch = matches[0];
   const scorePercent = Math.round(bestMatch.score * 100);
 
   if (matches.length === 1) {
-    return `Great news! We found a ${matchType} that's ${scorePercent}% compatible with you! This match satisfies ${bestMatch.details.matchedPreferences} out of your ${bestMatch.details.totalPreferences} preferences. Looking forward to helping you create the perfect pear!`;
+    return `We found ${matches.length} potential ${matchType} match with ${scorePercent}% compatibility. This match satisfies ${bestMatch.details.matchedPreferences} out of your ${bestMatch.details.totalPreferences} key preferences.`;
   }
 
-  return `Excellent! We found ${matches.length} potential matches for you! Your top match is a ${matchType} with ${scorePercent}% compatibility, meeting ${bestMatch.details.matchedPreferences} out of ${bestMatch.details.totalPreferences} of your preferences. We've got several other great options too. Time to make some perfect pears!`;
+  return `We found ${matches.length} potential ${matchType} matches for your ${seekerType}. Your top match shows ${scorePercent}% compatibility, meeting ${bestMatch.details.matchedPreferences} of ${bestMatch.details.totalPreferences} preferences. You can review all matches in your dashboard.`;
 }
 
