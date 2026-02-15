@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount, selectAverageMatchScore, selectMatchQualityDistribution, selectHighQualityMatches } from "@/lib/store";
+import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount, selectAverageMatchScore } from "@/lib/store";
 import { Conversation } from "@/app/components/Conversation";
 
 // =============================================================================
@@ -117,10 +117,36 @@ export default function DashboardPage() {
   const matchCount = useMatchmakingStore(selectMatchCount);
   const avgScore = useMatchmakingStore(selectAverageMatchScore);
   
-  // Memoize complex selectors to prevent infinite re-renders
+  // Get matches array for memoization
   const matches = useMatchmakingStore((state) => state.matches);
-  const qualityDistribution = useMemo(() => selectMatchQualityDistribution({ matches } as any), [matches]);
-  const highQualityMatches = useMemo(() => selectHighQualityMatches({ matches } as any), [matches]);
+  
+  // Memoize complex selectors that return new objects/arrays to prevent infinite re-renders
+  // We compute from the matches array dependency to ensure updates when matches change
+  const qualityDistribution = useMemo(() => {
+    const distribution = {
+      excellent: 0, // 90-100%
+      good: 0,      // 70-89%
+      fair: 0,      // 50-69%
+      poor: 0,      // 0-49%
+    };
+
+    matches.forEach((match) => {
+      const scorePercent = match.mutualScore * 100;
+      if (scorePercent >= 90) distribution.excellent++;
+      else if (scorePercent >= 70) distribution.good++;
+      else if (scorePercent >= 50) distribution.fair++;
+      else distribution.poor++;
+    });
+
+    return distribution;
+  }, [matches]);
+  
+  const highQualityMatches = useMemo(() => {
+    return matches
+      .filter((m) => m.mutualScore >= 0.8)
+      .sort((a, b) => b.mutualScore - a.mutualScore)
+      .slice(0, 5);
+  }, [matches]);
 
   const handleNewConversation = async () => {
     // Randomly pick apple or orange

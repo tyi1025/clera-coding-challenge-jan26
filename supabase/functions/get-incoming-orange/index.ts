@@ -60,8 +60,8 @@ Deno.serve(async (req) => {
       const mutualScore = calculateMutualScore(storedOrange, match.fruit);
       
       const matchRecord = await storeMatch({
-        apple_id: match.fruit.id,
-        orange_id: storedOrange.id,
+        apple_id: String(match.fruit.id),
+        orange_id: String(storedOrange.id),
         apple_to_orange_score: mutualScore.fruit2ToFruit1,
         orange_to_apple_score: mutualScore.fruit1ToFruit2,
         mutual_score: mutualScore.mutualScore,

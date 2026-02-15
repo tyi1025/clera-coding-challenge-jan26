@@ -33,29 +33,41 @@ export function Conversation() {
 
   // Progressive message reveal animation
   useEffect(() => {
+    // Helper function for delays (defined inside to avoid dependency issues)
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    
     if (!conversation?.messages) {
-      setVisibleMessageCount(0);
       return;
     }
 
-    // Reset animation when conversation changes
-    setVisibleMessageCount(0);
-    setTypingMessageId(null);
-
+    // Reset animation state and reveal messages
+    let isCancelled = false;
+    
     const revealMessages = async () => {
+      // Reset
+      setVisibleMessageCount(0);
+      setTypingMessageId(null);
+      
       for (let i = 0; i < conversation.messages.length; i++) {
+        if (isCancelled) break;
+        
         setVisibleMessageCount(i + 1);
         setTypingMessageId(conversation.messages[i].id);
 
         await delay(MESSAGE_DELAY_MS);
+        
+        if (isCancelled) break;
         setTypingMessageId(null);
       }
     };
 
     revealMessages();
-  }, [conversation?.id]); // Only re-run when conversation ID changes
-
-  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    
+    return () => {
+      isCancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- Only re-animate when conversation ID changes, not on every message update
+  }, [conversation?.id]); // Only depend on conversation ID to avoid re-triggering
 
   // Get visible messages based on animation progress
   const visibleMessages = conversation?.messages.slice(0, visibleMessageCount) || [];
@@ -64,7 +76,7 @@ export function Conversation() {
     <div className="conversation-container">
       {/* Empty State */}
       {!conversation && !isLoading && !error && (
-        <div className="flex h-full min-h-[400px] items-center justify-center">
+        <div className="flex h-full min-h-100 items-center justify-center">
           <div className="text-center text-muted">
             <p className="text-4xl">💬</p>
             <p className="mt-4 text-lg font-medium">No conversation yet</p>
@@ -77,7 +89,7 @@ export function Conversation() {
 
       {/* Error State */}
       {error && (
-        <div className="flex h-full min-h-[400px] items-center justify-center">
+        <div className="flex h-full min-h-100 items-center justify-center">
           <div className="text-center">
             <p className="text-4xl">⚠️</p>
             <p className="mt-4 text-lg font-medium text-red-500">Error</p>
@@ -88,7 +100,7 @@ export function Conversation() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex h-full min-h-[400px] items-center justify-center">
+        <div className="flex h-full min-h-100 items-center justify-center">
           <div className="text-center">
             <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent"></div>
             <p className="mt-4 text-sm text-muted">
