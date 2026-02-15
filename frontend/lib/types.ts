@@ -83,6 +83,9 @@ export interface TopMatch {
   total_preferences: number;
   details?: PreferenceMatchDetails;
   matched_fruit_attributes?: FruitAttributes;
+  matched_fruit_preferences?: FruitPreferences;
+  reverse_score?: number;
+  reverse_details?: PreferenceMatchDetails;
 }
 
 /**
@@ -127,6 +130,7 @@ export interface ConversationMessage {
     fruitType?: "apple" | "orange";
     matches?: TopMatch[];
     preferences?: FruitPreferences;
+    attributes?: FruitAttributes;
   };
 }
 

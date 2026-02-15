@@ -352,11 +352,11 @@ export function findBestMatches(
 
 /**
  * Calculates bidirectional compatibility between two fruits.
- * Returns both direction scores and a mutual score.
+ * Returns both direction scores, mutual score, and reverse preference details.
  *
- * @param fruit1 - First fruit
- * @param fruit2 - Second fruit
- * @returns Object with both scores and mutual score
+ * @param fruit1 - First fruit (seeker)
+ * @param fruit2 - Second fruit (candidate)
+ * @returns Object with both scores, mutual score, and reverse match details
  */
 export function calculateMutualScore(
   fruit1: Fruit | StoredFruit,
@@ -365,17 +365,19 @@ export function calculateMutualScore(
   fruit1ToFruit2: number;
   fruit2ToFruit1: number;
   mutualScore: number;
+  reverseDetails: PreferenceMatchDetails;
 } {
-  const score1to2 = calculateMatchScore(fruit1, fruit2).score;
-  const score2to1 = calculateMatchScore(fruit2, fruit1 as StoredFruit).score;
+  const forward = calculateMatchScore(fruit1, fruit2);
+  const reverse = calculateMatchScore(fruit2, fruit1 as StoredFruit);
 
   // Mutual score is the average (could also use minimum for stricter matching)
-  const mutualScore = (score1to2 + score2to1) / 2;
+  const mutualScore = (forward.score + reverse.score) / 2;
 
   return {
-    fruit1ToFruit2: score1to2,
-    fruit2ToFruit1: score2to1,
+    fruit1ToFruit2: forward.score,
+    fruit2ToFruit1: reverse.score,
     mutualScore,
+    reverseDetails: reverse.details,
   };
 }
 

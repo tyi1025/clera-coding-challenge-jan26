@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useMatchmakingStore, selectActiveConversation } from "@/lib/store";
-import type { ConversationMessage, TopMatch, PreferenceDetail } from "@/lib/types";
+import type { ConversationMessage, TopMatch, PreferenceDetail, FruitAttributes } from "@/lib/types";
 
 // =============================================================================
 // CONSTANTS
@@ -209,8 +209,68 @@ function MessageDisplay({ message, isTyping }: MessageDisplayProps) {
           <MatchesSummary
             matches={message.metadata.matches}
             fruitType={message.metadata.fruitType}
+            seekerAttributes={message.metadata.attributes}
           />
         )}
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// SEEKER PROFILE COMPONENT
+// =============================================================================
+
+interface SeekerProfileProps {
+  attributes: FruitAttributes;
+  fruitType?: "apple" | "orange";
+}
+
+function SeekerProfile({ attributes, fruitType }: SeekerProfileProps) {
+  const fruitIcon = fruitType === "apple" ? "🍎" : "🍊";
+  
+  const formatAttributeValue = (value: number | boolean | string | null): string => {
+    if (value === null) return "unknown";
+    if (typeof value === "boolean") return value ? "yes" : "no";
+    if (typeof value === "number") return String(Math.round(value * 10) / 10);
+    return String(value);
+  };
+
+  return (
+    <div className="mb-4 rounded-lg border border-zinc-200 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-xl">{fruitIcon}</span>
+        <p className="text-sm font-medium">Seeker Profile</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-3 md:grid-cols-4">
+        <div className="rounded bg-white px-2 py-1.5 dark:bg-zinc-950">
+          <span className="text-muted">Size:</span>{" "}
+          <span className="font-medium">{formatAttributeValue(attributes.size)}</span>
+        </div>
+        <div className="rounded bg-white px-2 py-1.5 dark:bg-zinc-950">
+          <span className="text-muted">Weight:</span>{" "}
+          <span className="font-medium">{formatAttributeValue(attributes.weight)}</span>
+        </div>
+        <div className="rounded bg-white px-2 py-1.5 dark:bg-zinc-950">
+          <span className="text-muted">Stem:</span>{" "}
+          <span className="font-medium">{formatAttributeValue(attributes.hasStem)}</span>
+        </div>
+        <div className="rounded bg-white px-2 py-1.5 dark:bg-zinc-950">
+          <span className="text-muted">Leaf:</span>{" "}
+          <span className="font-medium">{formatAttributeValue(attributes.hasLeaf)}</span>
+        </div>
+        <div className="rounded bg-white px-2 py-1.5 dark:bg-zinc-950">
+          <span className="text-muted">Worm:</span>{" "}
+          <span className="font-medium">{formatAttributeValue(attributes.hasWorm)}</span>
+        </div>
+        <div className="rounded bg-white px-2 py-1.5 dark:bg-zinc-950">
+          <span className="text-muted">Shine:</span>{" "}
+          <span className="font-medium">{formatAttributeValue(attributes.shineFactor)}</span>
+        </div>
+        <div className="rounded bg-white px-2 py-1.5 dark:bg-zinc-950">
+          <span className="text-muted">Chemicals:</span>{" "}
+          <span className="font-medium">{formatAttributeValue(attributes.hasChemicals)}</span>
+        </div>
       </div>
     </div>
   );
@@ -248,9 +308,10 @@ const PREFERENCE_LABELS: Record<string, string> = {
 interface MatchesSummaryProps {
   matches: TopMatch[];
   fruitType?: "apple" | "orange";
+  seekerAttributes?: FruitAttributes;
 }
 
-function MatchesSummary({ matches, fruitType }: MatchesSummaryProps) {
+function MatchesSummary({ matches, fruitType, seekerAttributes }: MatchesSummaryProps) {
   if (matches.length === 0) {
     return (
       <div className="mt-4 rounded-lg border border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
@@ -261,6 +322,10 @@ function MatchesSummary({ matches, fruitType }: MatchesSummaryProps) {
 
   return (
     <div className="mt-4 space-y-3">
+      {seekerAttributes && (
+        <SeekerProfile attributes={seekerAttributes} fruitType={fruitType} />
+      )}
+      
       <p className="text-sm font-medium text-muted">
         Top Matches ({matches.length}):
       </p>
@@ -307,7 +372,11 @@ function formatExpectedValue(value: string | boolean): string {
 
 function MatchCard({ match, index, fruitType }: MatchCardComponentProps) {
   const hasDetails = !!match.details;
+  const hasReverseDetails = !!match.reverse_details;
   const matchIcon = fruitType === "apple" ? "🍊" : "🍎";
+  const seekerIcon = fruitType === "apple" ? "🍎" : "🍊";
+  const matchType = fruitType === "apple" ? "Orange" : "Apple";
+  const seekerType = fruitType === "apple" ? "Apple" : "Orange";
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
@@ -325,12 +394,15 @@ function MatchCard({ match, index, fruitType }: MatchCardComponentProps) {
         </div>
       </div>
 
-      {/* Preference comparison table (uses real backend details) */}
+      {/* Forward direction: What the seeker wants */}
       {hasDetails && (
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-muted uppercase tracking-wide">
-            Preference Breakdown:
-          </p>
+        <div className="space-y-2 mb-4">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm">{seekerIcon}</span>
+            <p className="text-xs font-medium text-muted uppercase tracking-wide">
+              What {seekerType} wants:
+            </p>
+          </div>
           <div className="space-y-1.5">
             {PREFERENCE_DISPLAY_ORDER.map((key) => {
               const detail = match.details?.[key] as PreferenceDetail | undefined;
@@ -392,8 +464,81 @@ function MatchCard({ match, index, fruitType }: MatchCardComponentProps) {
         </div>
       )}
 
+      {/* Reverse direction: What the candidate wants */}
+      {hasReverseDetails && match.reverse_score !== undefined && (
+        <div className="space-y-2 pt-3 border-t border-zinc-200 dark:border-zinc-800">
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm">{matchIcon}</span>
+            <p className="text-xs font-medium text-muted uppercase tracking-wide">
+              What {matchType} wants:
+            </p>
+            <span className="ml-auto">
+              <ScoreBadge score={match.reverse_score} />
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {PREFERENCE_DISPLAY_ORDER.map((key) => {
+              const detail = match.reverse_details?.[key] as PreferenceDetail | undefined;
+              if (!detail) return null;
+
+              const isMatched = detail.score >= PREFERENCE_MATCH_THRESHOLD;
+
+              return (
+                <div
+                  key={key}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <span
+                    className={
+                      isMatched
+                        ? "text-green-600 dark:text-green-400 w-4 text-center"
+                        : "text-red-600 dark:text-red-400 w-4 text-center"
+                    }
+                  >
+                    {isMatched ? "✓" : "✗"}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 dark:bg-zinc-800 w-full">
+                    <span className="text-muted w-20 shrink-0">
+                      {PREFERENCE_LABELS[key] || key}:
+                    </span>
+                    <span className="font-medium text-muted">
+                      wants{" "}
+                      <span className="text-foreground">
+                        {formatExpectedValue(detail.expected)}
+                      </span>
+                    </span>
+                    <span className="text-muted mx-1">|</span>
+                    <span className="font-medium text-muted">
+                      has{" "}
+                      <span className="text-foreground">
+                        {formatActualValue(detail.actual)}
+                      </span>
+                    </span>
+                    {/* Score indicator bar */}
+                    <span className="ml-auto flex items-center gap-1">
+                      <span className="h-1.5 w-8 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                        <span
+                          className={`block h-full rounded-full transition-all ${
+                            detail.score >= PREFERENCE_MATCH_THRESHOLD
+                              ? "bg-green-500"
+                              : detail.score >= 0.5
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
+                          }`}
+                          style={{ width: `${Math.round(detail.score * 100)}%` }}
+                        />
+                      </span>
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Fallback if no details available (backward compatibility) */}
-      {!hasDetails && (
+      {!hasDetails && !hasReverseDetails && (
         <p className="text-xs text-muted">
           {match.matched_preferences}/{match.total_preferences} preferences satisfied
         </p>

@@ -54,10 +54,13 @@ Deno.serve(async (req) => {
     const llmResponse = await generateMatchCommunication("apple", storedApple, matches);
     console.log("✅ Generated LLM response");
 
-    // Store match records in the database
+    // Store match records in the database and track mutual scores
     const matchRecords = [];
+    const mutualScores: Record<string, ReturnType<typeof calculateMutualScore>> = {};
+    
     for (const match of matches) {
       const mutualScore = calculateMutualScore(storedApple, match.fruit);
+      mutualScores[match.fruit.id] = mutualScore;
       
       const matchRecord = await storeMatch({
         apple_id: String(storedApple.id),
@@ -92,14 +95,20 @@ Deno.serve(async (req) => {
         },
         matches: {
           count: matches.length,
-          top_matches: matches.map((m) => ({
-            orange_id: m.fruit.id,
-            score: Math.round(m.score * 100),
-            matched_preferences: m.details.matchedPreferences,
-            total_preferences: m.details.totalPreferences,
-            details: m.details,
-            matched_fruit_attributes: m.fruit.attributes,
-          })),
+          top_matches: matches.map((m) => {
+            const mutualScore = mutualScores[m.fruit.id];
+            return {
+              orange_id: m.fruit.id,
+              score: Math.round(m.score * 100),
+              matched_preferences: m.details.matchedPreferences,
+              total_preferences: m.details.totalPreferences,
+              details: m.details,
+              matched_fruit_attributes: m.fruit.attributes,
+              matched_fruit_preferences: m.fruit.preferences,
+              reverse_score: Math.round(mutualScore.fruit2ToFruit1 * 100),
+              reverse_details: mutualScore.reverseDetails,
+            };
+          }),
         },
         llm_response: llmResponse,
         match_records: matchRecords,

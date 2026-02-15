@@ -76,6 +76,7 @@ function transformResponseToConversation(
         fruitType: response.fruit.type,
         matches: response.matches.top_matches,
         preferences: response.fruit.preferences,
+        attributes: response.fruit.attributes,
       },
     },
   ];
