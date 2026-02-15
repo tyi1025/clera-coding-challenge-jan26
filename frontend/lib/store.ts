@@ -327,6 +327,65 @@ export const selectMatchCount = (state: MatchmakingState) => state.matches.lengt
 export const selectAverageMatchScore = (state: MatchmakingState) => {
   if (state.matches.length === 0) return 0;
   const total = state.matches.reduce((sum, m) => sum + m.mutualScore, 0);
-  return Math.round(total / state.matches.length);
+  return Math.round((total / state.matches.length) * 100);
+};
+
+/**
+ * Selector for match quality distribution
+ * Returns count of matches in each quality tier
+ */
+export const selectMatchQualityDistribution = (state: MatchmakingState) => {
+  const distribution = {
+    excellent: 0, // 90-100%
+    good: 0,      // 70-89%
+    fair: 0,      // 50-69%
+    poor: 0,      // 0-49%
+  };
+
+  state.matches.forEach((match) => {
+    const scorePercent = match.mutualScore * 100;
+    if (scorePercent >= 90) distribution.excellent++;
+    else if (scorePercent >= 70) distribution.good++;
+    else if (scorePercent >= 50) distribution.fair++;
+    else distribution.poor++;
+  });
+
+  return distribution;
+};
+
+/**
+ * Selector for high quality matches (>= 80% compatibility)
+ */
+export const selectHighQualityMatches = (state: MatchmakingState) => {
+  return state.matches
+    .filter((m) => m.mutualScore >= 0.8)
+    .sort((a, b) => b.mutualScore - a.mutualScore)
+    .slice(0, 5);
+};
+
+/**
+ * Selector for recent matches
+ */
+export const selectRecentMatches = (state: MatchmakingState) => {
+  return state.matches
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, 10);
+};
+
+/**
+ * Selector for match success rate (% of fruits that got matches)
+ */
+export const selectMatchSuccessRate = (state: MatchmakingState) => {
+  const totalFruits = state.apples.length + state.oranges.length;
+  if (totalFruits === 0) return 0;
+  
+  // Count unique fruits that have at least one match
+  const matchedFruitIds = new Set<string>();
+  state.matches.forEach((match) => {
+    matchedFruitIds.add(match.appleId);
+    matchedFruitIds.add(match.orangeId);
+  });
+  
+  return Math.round((matchedFruitIds.size / totalFruits) * 100);
 };
 

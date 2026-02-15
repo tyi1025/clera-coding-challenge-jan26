@@ -1,6 +1,7 @@
 "use client";
 
-import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount, selectAverageMatchScore } from "@/lib/store";
+import { useMemo } from "react";
+import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount, selectAverageMatchScore, selectMatchQualityDistribution, selectHighQualityMatches } from "@/lib/store";
 import { Conversation } from "@/app/components/Conversation";
 
 // =============================================================================
@@ -31,6 +32,78 @@ function MetricCard({ title, value, icon, description }: MetricCardProps) {
   );
 }
 
+interface QualityBarProps {
+  label: string;
+  count: number;
+  total: number;
+  color: string;
+  range: string;
+}
+
+function QualityBar({ label, count, total, color, range }: QualityBarProps) {
+  const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+  
+  return (
+    <div className="metric-card">
+      <div className="mb-2">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm font-medium">{label}</span>
+          <span className="text-xs text-muted">{range}</span>
+        </div>
+        <p className="text-2xl font-bold">{count}</p>
+        <p className="text-xs text-muted">{percentage}% of matches</p>
+      </div>
+      <div className="h-2 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+        <div 
+          className={`h-full ${color} transition-all duration-500`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface MatchCardProps {
+  match: {
+    id: string;
+    appleId: string;
+    orangeId: string;
+    mutualScore: number;
+    createdAt: Date;
+  };
+}
+
+function MatchCard({ match }: MatchCardProps) {
+  const scorePercent = Math.round(match.mutualScore * 100);
+  
+  return (
+    <div className="metric-card flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1">
+          <span className="text-2xl">🍎</span>
+          <span className="text-xl">💚</span>
+          <span className="text-2xl">🍊</span>
+        </div>
+        <div>
+          <p className="text-sm font-medium">Perfect Pair</p>
+          <p className="text-xs text-muted">
+            {new Date(match.createdAt).toLocaleString()}
+          </p>
+        </div>
+      </div>
+      <div className="flex items-center gap-3">
+        <div className="text-right">
+          <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+            {scorePercent}%
+          </p>
+          <p className="text-xs text-muted">Compatible</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 // =============================================================================
 // PAGE
 // =============================================================================
@@ -43,6 +116,11 @@ export default function DashboardPage() {
   const orangeCount = useMatchmakingStore(selectOrangeCount);
   const matchCount = useMatchmakingStore(selectMatchCount);
   const avgScore = useMatchmakingStore(selectAverageMatchScore);
+  
+  // Memoize complex selectors to prevent infinite re-renders
+  const matches = useMatchmakingStore((state) => state.matches);
+  const qualityDistribution = useMemo(() => selectMatchQualityDistribution({ matches } as any), [matches]);
+  const highQualityMatches = useMemo(() => selectHighQualityMatches({ matches } as any), [matches]);
 
   const handleNewConversation = async () => {
     // Randomly pick apple or orange
@@ -109,6 +187,55 @@ export default function DashboardPage() {
             />
           </div>
         </section>
+
+        {/* Match Quality Distribution */}
+        {matchCount > 0 && (
+          <section className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold">Match Quality Distribution</h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+              <QualityBar
+                label="Excellent"
+                count={qualityDistribution.excellent}
+                total={matchCount}
+                color="bg-green-500"
+                range="90-100%"
+              />
+              <QualityBar
+                label="Good"
+                count={qualityDistribution.good}
+                total={matchCount}
+                color="bg-blue-500"
+                range="70-89%"
+              />
+              <QualityBar
+                label="Fair"
+                count={qualityDistribution.fair}
+                total={matchCount}
+                color="bg-yellow-500"
+                range="50-69%"
+              />
+              <QualityBar
+                label="Poor"
+                count={qualityDistribution.poor}
+                total={matchCount}
+                color="bg-red-500"
+                range="0-49%"
+              />
+            </div>
+          </section>
+        )}
+
+        {/* High Quality Matches */}
+        {highQualityMatches.length > 0 && (
+          <section className="mb-8">
+            <h2 className="mb-4 text-lg font-semibold">Top Quality Matches 🏆</h2>
+            <div className="space-y-3">
+              {highQualityMatches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Conversation Visualization Section */}
         <section className="mb-8">
