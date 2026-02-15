@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useMatchmakingStore, selectActiveConversation } from "@/lib/store";
-import type { ConversationMessage, TopMatch, FruitPreferences } from "@/lib/types";
+import type { ConversationMessage, TopMatch, PreferenceDetail } from "@/lib/types";
 
 // =============================================================================
 // CONSTANTS
@@ -209,7 +209,6 @@ function MessageDisplay({ message, isTyping }: MessageDisplayProps) {
           <MatchesSummary
             matches={message.metadata.matches}
             fruitType={message.metadata.fruitType}
-            preferences={message.metadata.preferences}
           />
         )}
       </div>
@@ -221,13 +220,37 @@ function MessageDisplay({ message, isTyping }: MessageDisplayProps) {
 // MATCHES SUMMARY COMPONENT
 // =============================================================================
 
+// Threshold above which a preference is considered "matched" (must match backend)
+const PREFERENCE_MATCH_THRESHOLD = 0.8;
+
+// Preference keys in display order
+const PREFERENCE_DISPLAY_ORDER = [
+  "hasWorm",
+  "hasChemicals",
+  "size",
+  "weight",
+  "shineFactor",
+  "hasStem",
+  "hasLeaf",
+] as const;
+
+// Human-readable labels for preference keys
+const PREFERENCE_LABELS: Record<string, string> = {
+  size: "Size",
+  weight: "Weight",
+  hasStem: "Has Stem",
+  hasLeaf: "Has Leaf",
+  hasWorm: "Has Worm",
+  shineFactor: "Shine",
+  hasChemicals: "Chemicals",
+};
+
 interface MatchesSummaryProps {
   matches: TopMatch[];
   fruitType?: "apple" | "orange";
-  preferences?: FruitPreferences;
 }
 
-function MatchesSummary({ matches, fruitType, preferences }: MatchesSummaryProps) {
+function MatchesSummary({ matches, fruitType }: MatchesSummaryProps) {
   if (matches.length === 0) {
     return (
       <div className="mt-4 rounded-lg border border-zinc-300 bg-zinc-50 p-4 dark:border-zinc-700 dark:bg-zinc-900">
@@ -246,87 +269,156 @@ function MatchesSummary({ matches, fruitType, preferences }: MatchesSummaryProps
       </div>
 
       {matches.map((match, index) => (
-        <div
+        <MatchCard
           key={match.apple_id || match.orange_id}
-          className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950"
-        >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">
-                {fruitType === "apple" ? "🍊" : "🍎"}
-              </span>
-              <span className="text-sm font-medium">
-                Match #{index + 1}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-full bg-pear px-3 py-1 text-xs font-bold text-white">
-                {match.score}%
-              </span>
-            </div>
-          </div>
-
-          {/* Show what was matched */}
-          {preferences && (
-            <div className="space-y-2">
-              <p className="text-xs font-medium text-muted uppercase tracking-wide">
-                Matching Preferences:
-              </p>
-              <div className="space-y-1">
-                {(Object.entries(preferences) as [string, unknown][]).map(([key, value], idx) => {
-                  // Skip null/undefined values
-                  if (value === null || value === undefined) return null;
-
-                  // Determine if this preference was matched
-                  // We'll assume the first N preferences matched based on the score
-                  const isMatched = idx < match.matched_preferences;
-
-                  // Format the preference nicely
-                  const formatValue = (v: unknown): string => {
-                    if (typeof v === "object" && v !== null) {
-                      const obj = v as Record<string, unknown>;
-                      if ("min" in obj && "max" in obj) {
-                        return `${obj.min}-${obj.max}`;
-                      }
-                      if ("min" in obj) return `≥${obj.min}`;
-                      if ("max" in obj) return `≤${obj.max}`;
-                      return JSON.stringify(v);
-                    }
-                    if (typeof v === "boolean") {
-                      return v ? "yes" : "no";
-                    }
-                    return String(v);
-                  };
-
-                  const formatKey = (k: string): string => {
-                    return k
-                      .replace(/([A-Z])/g, " $1")
-                      .replace(/^./, (str) => str.toUpperCase())
-                      .trim();
-                  };
-
-                  return (
-                    <div
-                      key={key}
-                      className="flex items-center gap-2 text-xs"
-                    >
-                      <span className={isMatched ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}>
-                        {isMatched ? "✓" : "✗"}
-                      </span>
-                      <span
-                        className="inline-flex items-center gap-1 rounded-md bg-zinc-100 px-2 py-1 dark:bg-zinc-800"
-                      >
-                        <span className="text-muted">{formatKey(key)}:</span>
-                        <span className="font-medium">{formatValue(value)}</span>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
+          match={match}
+          index={index}
+          fruitType={fruitType}
+        />
       ))}
     </div>
+  );
+}
+
+// =============================================================================
+// INDIVIDUAL MATCH CARD
+// =============================================================================
+
+interface MatchCardComponentProps {
+  match: TopMatch;
+  index: number;
+  fruitType?: "apple" | "orange";
+}
+
+/**
+ * Formats a preference's actual value for display
+ */
+function formatActualValue(value: number | boolean | string | null): string {
+  if (value === null) return "unknown";
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  if (typeof value === "number") return String(Math.round(value * 10) / 10);
+  return String(value);
+}
+
+/**
+ * Formats a preference's expected value for display
+ */
+function formatExpectedValue(value: string | boolean): string {
+  if (typeof value === "boolean") return value ? "yes" : "no";
+  return String(value);
+}
+
+function MatchCard({ match, index, fruitType }: MatchCardComponentProps) {
+  const hasDetails = !!match.details;
+  const matchIcon = fruitType === "apple" ? "🍊" : "🍎";
+
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
+      {/* Header: Match number + score */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">{matchIcon}</span>
+          <span className="text-sm font-medium">Match #{index + 1}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <ScoreBadge score={match.score} />
+        </div>
+      </div>
+
+      {/* Preference comparison table (uses real backend details) */}
+      {hasDetails && (
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-muted uppercase tracking-wide">
+            Preference Breakdown:
+          </p>
+          <div className="space-y-1.5">
+            {PREFERENCE_DISPLAY_ORDER.map((key) => {
+              const detail = match.details?.[key] as PreferenceDetail | undefined;
+              if (!detail) return null;
+
+              const isMatched = detail.score >= PREFERENCE_MATCH_THRESHOLD;
+
+              return (
+                <div
+                  key={key}
+                  className="flex items-center gap-2 text-xs"
+                >
+                  <span
+                    className={
+                      isMatched
+                        ? "text-green-600 dark:text-green-400 w-4 text-center"
+                        : "text-red-600 dark:text-red-400 w-4 text-center"
+                    }
+                  >
+                    {isMatched ? "✓" : "✗"}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-zinc-100 px-2 py-1 dark:bg-zinc-800 w-full">
+                    <span className="text-muted w-20 shrink-0">
+                      {PREFERENCE_LABELS[key] || key}:
+                    </span>
+                    <span className="font-medium text-muted">
+                      wants{" "}
+                      <span className="text-foreground">
+                        {formatExpectedValue(detail.expected)}
+                      </span>
+                    </span>
+                    <span className="text-muted mx-1">|</span>
+                    <span className="font-medium text-muted">
+                      has{" "}
+                      <span className="text-foreground">
+                        {formatActualValue(detail.actual)}
+                      </span>
+                    </span>
+                    {/* Score indicator bar */}
+                    <span className="ml-auto flex items-center gap-1">
+                      <span className="h-1.5 w-8 rounded-full bg-zinc-200 dark:bg-zinc-700 overflow-hidden">
+                        <span
+                          className={`block h-full rounded-full transition-all ${
+                            detail.score >= PREFERENCE_MATCH_THRESHOLD
+                              ? "bg-green-500"
+                              : detail.score >= 0.5
+                              ? "bg-yellow-500"
+                              : "bg-red-500"
+                          }`}
+                          style={{ width: `${Math.round(detail.score * 100)}%` }}
+                        />
+                      </span>
+                    </span>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Fallback if no details available (backward compatibility) */}
+      {!hasDetails && (
+        <p className="text-xs text-muted">
+          {match.matched_preferences}/{match.total_preferences} preferences satisfied
+        </p>
+      )}
+    </div>
+  );
+}
+
+// =============================================================================
+// SCORE BADGE COMPONENT
+// =============================================================================
+
+function ScoreBadge({ score }: { score: number }) {
+  const bgClass =
+    score >= 90
+      ? "bg-green-600"
+      : score >= 70
+      ? "bg-pear"
+      : score >= 50
+      ? "bg-yellow-500"
+      : "bg-red-500";
+
+  return (
+    <span className={`rounded-full ${bgClass} px-3 py-1 text-xs font-bold text-white`}>
+      {score}%
+    </span>
   );
 }

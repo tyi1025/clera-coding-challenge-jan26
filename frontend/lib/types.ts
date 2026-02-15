@@ -46,6 +46,33 @@ export interface FruitPreferences {
 }
 
 /**
+ * Per-preference detail from the matching algorithm.
+ * Shows what the seeker wanted vs. what the candidate actually has.
+ */
+export interface PreferenceDetail {
+  expected: string | boolean;
+  actual: number | boolean | string | null;
+  score: number;
+}
+
+/**
+ * Full breakdown of how each preference was scored.
+ * Mirrors backend PreferenceMatchDetails from matching.ts.
+ */
+export interface PreferenceMatchDetails {
+  size?: PreferenceDetail;
+  weight?: PreferenceDetail;
+  hasStem?: PreferenceDetail;
+  hasLeaf?: PreferenceDetail;
+  hasWorm?: PreferenceDetail;
+  shineFactor?: PreferenceDetail;
+  hasChemicals?: PreferenceDetail;
+  totalScore: number;
+  matchedPreferences: number;
+  totalPreferences: number;
+}
+
+/**
  * A single match result from the matching algorithm
  */
 export interface TopMatch {
@@ -54,6 +81,8 @@ export interface TopMatch {
   score: number;
   matched_preferences: number;
   total_preferences: number;
+  details?: PreferenceMatchDetails;
+  matched_fruit_attributes?: FruitAttributes;
 }
 
 /**

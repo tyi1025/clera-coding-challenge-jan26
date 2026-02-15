@@ -97,6 +97,8 @@ Deno.serve(async (req) => {
             score: Math.round(m.score * 100),
             matched_preferences: m.details.matchedPreferences,
             total_preferences: m.details.totalPreferences,
+            details: m.details,
+            matched_fruit_attributes: m.fruit.attributes,
           })),
         },
         llm_response: llmResponse,
