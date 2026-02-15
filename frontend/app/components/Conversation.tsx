@@ -377,10 +377,15 @@ function MatchCard({ match, index, fruitType }: MatchCardComponentProps) {
   const seekerIcon = fruitType === "apple" ? "🍎" : "🍊";
   const matchType = fruitType === "apple" ? "Orange" : "Apple";
   const seekerType = fruitType === "apple" ? "Apple" : "Orange";
+  
+  // Calculate mutual score (average of forward and reverse)
+  const mutualScore = match.reverse_score !== undefined 
+    ? Math.round((match.score + match.reverse_score) / 2)
+    : match.score;
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-      {/* Header: Match number + preference count + score */}
+      {/* Header: Match number + preference count + mutual score */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">{matchIcon}</span>
@@ -390,7 +395,7 @@ function MatchCard({ match, index, fruitType }: MatchCardComponentProps) {
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <ScoreBadge score={match.score} />
+          <ScoreBadge score={mutualScore} />
         </div>
       </div>
 
@@ -402,6 +407,9 @@ function MatchCard({ match, index, fruitType }: MatchCardComponentProps) {
             <p className="text-xs font-medium text-muted uppercase tracking-wide">
               What {seekerType} wants:
             </p>
+            <span className="ml-auto">
+              <ScoreBadge score={match.score} />
+            </span>
           </div>
           <div className="space-y-1.5">
             {PREFERENCE_DISPLAY_ORDER.map((key) => {

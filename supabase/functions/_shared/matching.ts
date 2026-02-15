@@ -43,10 +43,19 @@ const SCORE_ROUNDING_PRECISION = 1000;
 // Types
 // ============================================================================
 
+interface UnidirectionalMatchScore {
+  fruit: StoredFruit;
+  score: number;
+  details: PreferenceMatchDetails;
+}
+
 export interface MatchScore {
   fruit: StoredFruit;
   score: number;
   details: PreferenceMatchDetails;
+  mutualScore: number;
+  reverseScore: number;
+  reverseDetails: PreferenceMatchDetails;
 }
 
 export interface PreferenceMatchDetails {
@@ -183,7 +192,7 @@ function scoreShineFactorMatch(
 export function calculateMatchScore(
   seeker: Fruit | StoredFruit,
   candidate: StoredFruit
-): MatchScore {
+): UnidirectionalMatchScore {
   const preferences = seeker.preferences;
   const attributes = candidate.attributes;
   const details: PreferenceMatchDetails = {
@@ -324,29 +333,42 @@ export function calculateMatchScore(
 
 /**
  * Finds the best matches for a fruit from a list of candidates.
- * Returns matches sorted by score (best first).
+ * Returns matches sorted by mutual/bidirectional compatibility (best first).
  *
  * @param seeker - The fruit looking for a match
  * @param candidates - Array of potential matches
  * @param limit - Maximum number of matches to return (default: 5)
- * @returns Array of match scores, sorted by score descending
+ * @returns Array of match scores, sorted by mutual score descending
  */
 export function findBestMatches(
   seeker: Fruit | StoredFruit,
   candidates: StoredFruit[],
   limit = 5
 ): MatchScore[] {
-  // Score all candidates
-  const scores = candidates.map((candidate) =>
-    calculateMatchScore(seeker, candidate)
-  );
+  // Calculate mutual scores for all candidates
+  const scores = candidates.map((candidate) => {
+    const forwardMatch = calculateMatchScore(seeker, candidate);
+    const reverseMatch = calculateMatchScore(candidate, seeker as StoredFruit);
+    
+    // Mutual score is the average of both directions
+    const mutualScore = (forwardMatch.score + reverseMatch.score) / 2;
+    
+    return {
+      fruit: candidate,
+      score: forwardMatch.score,
+      details: forwardMatch.details,
+      mutualScore,
+      reverseScore: reverseMatch.score,
+      reverseDetails: reverseMatch.details,
+    };
+  });
 
-  // Filter by minimum score threshold
-  const validMatches = scores.filter((match) => match.score >= MIN_MATCH_SCORE);
+  // Filter by minimum mutual score threshold
+  const validMatches = scores.filter((match) => match.mutualScore >= MIN_MATCH_SCORE);
 
-  // Sort by score (descending) and limit
+  // Sort by mutual score (descending) and limit
   return validMatches
-    .sort((a, b) => b.score - a.score)
+    .sort((a, b) => b.mutualScore - a.mutualScore)
     .slice(0, limit);
 }
 

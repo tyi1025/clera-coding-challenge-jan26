@@ -2,7 +2,7 @@
 import "@supabase/functions-js/edge-runtime.d.ts";
 import { generateOrange } from "../_shared/generateFruit.ts";
 import { storeOrange, getAllApples, storeMatch } from "../_shared/db.ts";
-import { findBestMatches, calculateMutualScore } from "../_shared/matching.ts";
+import { findBestMatches } from "../_shared/matching.ts";
 import { generateMatchCommunication } from "../_shared/llm.ts";
 
 /**
@@ -54,20 +54,21 @@ Deno.serve(async (req) => {
     const llmResponse = await generateMatchCommunication("orange", storedOrange, matches);
     console.log("✅ Generated LLM response");
 
-    // Store match records in the database and track mutual scores
-    const matchRecords = [];
-    const mutualScores: Record<string, ReturnType<typeof calculateMutualScore>> = {};
+    // Store match records in the database
+    const matchRecords: Array<{
+      match_id: string | undefined;
+      apple_id: string;
+      score: number;
+      mutual_score: number;
+    }> = [];
     
     for (const match of matches) {
-      const mutualScore = calculateMutualScore(storedOrange, match.fruit);
-      mutualScores[match.fruit.id] = mutualScore;
-      
       const matchRecord = await storeMatch({
         apple_id: String(match.fruit.id),
         orange_id: String(storedOrange.id),
-        apple_to_orange_score: mutualScore.fruit2ToFruit1,
-        orange_to_apple_score: mutualScore.fruit1ToFruit2,
-        mutual_score: mutualScore.mutualScore,
+        apple_to_orange_score: match.reverseScore,
+        orange_to_apple_score: match.score,
+        mutual_score: match.mutualScore,
         llm_response: llmResponse,
         created_at: new Date(),
       });
@@ -76,7 +77,7 @@ Deno.serve(async (req) => {
         match_id: matchRecord.id,
         apple_id: match.fruit.id,
         score: match.score,
-        mutual_score: mutualScore.mutualScore,
+        mutual_score: match.mutualScore,
       });
     }
 
@@ -96,7 +97,6 @@ Deno.serve(async (req) => {
         matches: {
           count: matches.length,
           top_matches: matches.map((m) => {
-            const mutualScore = mutualScores[m.fruit.id];
             return {
               apple_id: m.fruit.id,
               score: Math.round(m.score * 100),
@@ -105,8 +105,8 @@ Deno.serve(async (req) => {
               details: m.details,
               matched_fruit_attributes: m.fruit.attributes,
               matched_fruit_preferences: m.fruit.preferences,
-              reverse_score: Math.round(mutualScore.fruit2ToFruit1 * 100),
-              reverse_details: mutualScore.reverseDetails,
+              reverse_score: Math.round(m.reverseScore * 100),
+              reverse_details: m.reverseDetails,
             };
           }),
         },
