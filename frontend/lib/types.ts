@@ -110,6 +110,10 @@ export interface MatchmakingResponse {
     attributes: FruitAttributes;
     preferences: FruitPreferences;
   };
+  communication?: {
+    attributes: string;
+    preferences: string;
+  };
   matches: {
     count: number;
     top_matches: TopMatch[];

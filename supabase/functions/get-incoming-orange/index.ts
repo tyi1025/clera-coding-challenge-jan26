@@ -1,6 +1,6 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "@supabase/functions-js/edge-runtime.d.ts";
-import { generateOrange } from "../_shared/generateFruit.ts";
+import { generateOrange, communicateAttributes, communicatePreferences } from "../_shared/generateFruit.ts";
 import { storeOrange, getAllApples, storeMatch } from "../_shared/db.ts";
 import { findBestMatches } from "../_shared/matching.ts";
 import { generateMatchCommunication } from "../_shared/llm.ts";
@@ -10,10 +10,11 @@ import { generateMatchCommunication } from "../_shared/llm.ts";
  *
  * Complete Task Flow:
  * 1. Generate a new orange instance ✅
- * 2. Store the new orange in SurrealDB ✅
- * 3. Match the new orange to existing apples ✅
- * 4. Generate match communication via LLM ✅
- * 5. Store match records ✅
+ * 2. Capture the fruit's communication (attributes & preferences) ✅
+ * 3. Store the new orange in SurrealDB ✅
+ * 4. Match the new orange to existing apples ✅
+ * 5. Generate match communication via LLM ✅
+ * 6. Store match records ✅
  */
 
 // CORS headers for local development
@@ -39,18 +40,23 @@ Deno.serve(async (req) => {
     const orange = generateOrange();
     console.log("✅ Generated orange with attributes:", orange.attributes);
 
-    // Step 2: Store the new orange in SurrealDB
+    // Step 2: Capture the fruit's communication
+    const attributesCommunication = communicateAttributes(orange);
+    const preferencesCommunication = communicatePreferences(orange);
+    console.log("✅ Generated fruit communication");
+
+    // Step 3: Store the new orange in SurrealDB
     const storedOrange = await storeOrange(orange);
     console.log("✅ Orange stored in database with ID:", storedOrange.id);
 
-    // Step 3: Match the new orange to existing apples
+    // Step 4: Match the new orange to existing apples
     const apples = await getAllApples();
     console.log(`🔍 Found ${apples.length} apples to match against`);
 
     const matches = findBestMatches(storedOrange, apples, MAX_MATCHES);
     console.log(`✅ Found ${matches.length} potential matches`);
 
-    // Step 4: Generate match communication via LLM
+    // Step 5: Generate match communication via LLM
     const llmResponse = await generateMatchCommunication("orange", storedOrange, matches);
     console.log("✅ Generated LLM response");
 
@@ -93,6 +99,10 @@ Deno.serve(async (req) => {
           type: "orange",
           attributes: storedOrange.attributes,
           preferences: storedOrange.preferences,
+        },
+        communication: {
+          attributes: attributesCommunication,
+          preferences: preferencesCommunication,
         },
         matches: {
           count: matches.length,

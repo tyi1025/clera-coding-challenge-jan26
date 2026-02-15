@@ -60,6 +60,8 @@ function transformResponseToConversation(
   
   const otherFruitType = response.fruit.type === "apple" ? "oranges" : "apples";
 
+  const fruitIcon = response.fruit.type === "apple" ? "🍎" : "🍊";
+
   const messages: ConversationMessage[] = [
     {
       id: generateId(),
@@ -67,6 +69,28 @@ function transformResponseToConversation(
       content: `🔍 New ${response.fruit.type} is looking for compatible ${otherFruitType}...`,
       timestamp: now,
     },
+    // Fruit communicates its own attributes
+    ...(response.communication ? [{
+      id: generateId(),
+      role: "fruit" as const,
+      content: `${fruitIcon} ${response.communication.attributes}`,
+      timestamp: now,
+      metadata: {
+        fruitType: response.fruit.type,
+        attributes: response.fruit.attributes,
+      },
+    }] : []),
+    // Fruit communicates its preferences
+    ...(response.communication ? [{
+      id: generateId(),
+      role: "fruit" as const,
+      content: `${fruitIcon} ${response.communication.preferences}`,
+      timestamp: now,
+      metadata: {
+        fruitType: response.fruit.type,
+        preferences: response.fruit.preferences,
+      },
+    }] : []),
     {
       id: generateId(),
       role: "result",
