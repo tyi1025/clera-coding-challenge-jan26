@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount, selectAverageMatchScore } from "@/lib/store";
 import { Conversation } from "@/app/components/Conversation";
+import type { Conversation as ConversationType } from "@/lib/types";
 
 // =============================================================================
 // COMPONENTS
@@ -103,6 +104,65 @@ function MatchCard({ match }: MatchCardProps) {
   );
 }
 
+interface ConversationHistoryItemProps {
+  conversation: ConversationType;
+  isActive: boolean;
+  onClick: () => void;
+}
+
+function ConversationHistoryItem({ conversation, isActive, onClick }: ConversationHistoryItemProps) {
+  const fruitIcon = conversation.type === "apple" ? "🍎" : "🍊";
+  const topMatches = conversation.response.matches.top_matches;
+  const bestScore = topMatches.length > 0
+    ? Math.max(...topMatches.map((m) => m.score))
+    : 0;
+  const matchCountDisplay = topMatches.length;
+
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left rounded-lg border p-3 transition-all hover:shadow-md ${
+        isActive
+          ? "border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20"
+          : "border-zinc-200 bg-white hover:border-zinc-300 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:border-zinc-700"
+      }`}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <span className="text-2xl">{fruitIcon}</span>
+          <div>
+            <p className="text-sm font-medium capitalize">
+              {conversation.type} Conversation
+            </p>
+            <p className="text-xs text-muted">
+              {new Date(conversation.createdAt).toLocaleString()}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-right">
+            <p className={`text-lg font-bold ${
+              bestScore >= 90
+                ? "text-green-600 dark:text-green-400"
+                : bestScore >= 70
+                ? "text-blue-600 dark:text-blue-400"
+                : "text-yellow-600 dark:text-yellow-400"
+            }`}>
+              {bestScore > 0 ? `${bestScore}%` : "—"}
+            </p>
+            <p className="text-xs text-muted">
+              {matchCountDisplay} {matchCountDisplay === 1 ? "match" : "matches"}
+            </p>
+          </div>
+          {isActive && (
+            <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+          )}
+        </div>
+      </div>
+    </button>
+  );
+}
+
 
 // =============================================================================
 // PAGE
@@ -111,14 +171,25 @@ function MatchCard({ match }: MatchCardProps) {
 export default function DashboardPage() {
   // Zustand: Get state and actions
   const startMatchmaking = useMatchmakingStore((state) => state.startMatchmaking);
+  const setActiveConversation = useMatchmakingStore((state) => state.setActiveConversation);
   const isLoading = useMatchmakingStore((state) => state.isLoading);
   const appleCount = useMatchmakingStore(selectAppleCount);
   const orangeCount = useMatchmakingStore(selectOrangeCount);
   const matchCount = useMatchmakingStore(selectMatchCount);
   const avgScore = useMatchmakingStore(selectAverageMatchScore);
+  const conversations = useMatchmakingStore((state) => state.conversations);
+  const activeConversationId = useMatchmakingStore((state) => state.activeConversationId);
   
   // Get matches array for memoization
   const matches = useMatchmakingStore((state) => state.matches);
+  
+  // Conversations sorted newest first for the history panel
+  const sortedConversations = useMemo(
+    () => [...conversations].sort((a, b) =>
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    ),
+    [conversations]
+  );
   
   // Memoize complex selectors that return new objects/arrays to prevent infinite re-renders
   // We compute from the matches array dependency to ensure updates when matches change
@@ -263,12 +334,37 @@ export default function DashboardPage() {
           </section>
         )}
 
-        {/* Conversation Visualization Section */}
+        {/* Conversation History + Active Conversation */}
         <section className="mb-8">
           <h2 className="mb-4 text-lg font-semibold">
-            Matchmaking Conversation
+            Matchmaking Conversations
           </h2>
-          <Conversation />
+
+          {sortedConversations.length > 0 ? (
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+              {/* History sidebar */}
+              <div className="space-y-2 lg:max-h-[600px] lg:overflow-y-auto lg:pr-2">
+                <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">
+                  History ({sortedConversations.length})
+                </p>
+                {sortedConversations.map((conv) => (
+                  <ConversationHistoryItem
+                    key={conv.id}
+                    conversation={conv}
+                    isActive={conv.id === activeConversationId}
+                    onClick={() => setActiveConversation(conv.id)}
+                  />
+                ))}
+              </div>
+
+              {/* Active conversation detail */}
+              <div>
+                <Conversation />
+              </div>
+            </div>
+          ) : (
+            <Conversation />
+          )}
         </section>
       </main>
     </div>
