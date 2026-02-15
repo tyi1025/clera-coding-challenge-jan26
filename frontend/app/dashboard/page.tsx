@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount, selectAverageMatchScore } from "@/lib/store";
+import { useMatchmakingStore, selectAppleCount, selectOrangeCount, selectMatchCount, selectAverageMatchScore, selectMatchQualityDistribution, selectHighQualityMatches } from "@/lib/store";
 import { Conversation } from "@/app/components/Conversation";
 import type { Conversation as ConversationType } from "@/lib/types";
 
@@ -179,9 +179,22 @@ export default function DashboardPage() {
   const avgScore = useMatchmakingStore(selectAverageMatchScore);
   const conversations = useMatchmakingStore((state) => state.conversations);
   const activeConversationId = useMatchmakingStore((state) => state.activeConversationId);
-  
-  // Get matches array for memoization
   const matches = useMatchmakingStore((state) => state.matches);
+  
+  // Memoize selectors that return new objects/arrays to prevent infinite re-renders
+  // We compute these from matches directly to avoid SSR issues with Zustand hooks
+  // that return new object references
+  const qualityDistribution = useMemo(() => {
+    // Reuse the selector logic by creating a minimal state object
+    const mockState = { matches } as Parameters<typeof selectMatchQualityDistribution>[0];
+    return selectMatchQualityDistribution(mockState);
+  }, [matches]);
+  
+  const highQualityMatches = useMemo(() => {
+    // Reuse the selector logic by creating a minimal state object
+    const mockState = { matches } as Parameters<typeof selectHighQualityMatches>[0];
+    return selectHighQualityMatches(mockState);
+  }, [matches]);
   
   // Conversations sorted newest first for the history panel
   const sortedConversations = useMemo(
@@ -190,34 +203,6 @@ export default function DashboardPage() {
     ),
     [conversations]
   );
-  
-  // Memoize complex selectors that return new objects/arrays to prevent infinite re-renders
-  // We compute from the matches array dependency to ensure updates when matches change
-  const qualityDistribution = useMemo(() => {
-    const distribution = {
-      excellent: 0, // 90-100%
-      good: 0,      // 70-89%
-      fair: 0,      // 50-69%
-      poor: 0,      // 0-49%
-    };
-
-    matches.forEach((match) => {
-      const scorePercent = match.mutualScore * 100;
-      if (scorePercent >= 90) distribution.excellent++;
-      else if (scorePercent >= 70) distribution.good++;
-      else if (scorePercent >= 50) distribution.fair++;
-      else distribution.poor++;
-    });
-
-    return distribution;
-  }, [matches]);
-  
-  const highQualityMatches = useMemo(() => {
-    return matches
-      .filter((m) => m.mutualScore >= 0.8)
-      .sort((a, b) => b.mutualScore - a.mutualScore)
-      .slice(0, 5);
-  }, [matches]);
 
   return (
     <div className="min-h-screen">
@@ -344,7 +329,7 @@ export default function DashboardPage() {
           {sortedConversations.length > 0 ? (
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
               {/* History sidebar */}
-              <div className="space-y-2 lg:max-h-[600px] lg:overflow-y-auto lg:pr-2">
+              <div className="space-y-2 lg:max-h-150 lg:overflow-y-auto lg:pr-2">
                 <p className="text-xs font-medium text-muted uppercase tracking-wide mb-2">
                   History ({sortedConversations.length})
                 </p>

@@ -326,12 +326,6 @@ export const selectActiveConversation = (state: MatchmakingState) =>
   state.conversations.find((c) => c.id === state.activeConversationId);
 
 /**
- * Selector for total conversation count
- */
-export const selectConversationCount = (state: MatchmakingState) =>
-  state.conversations.length;
-
-/**
  * Selector for total apples
  */
 export const selectAppleCount = (state: MatchmakingState) => state.apples.length;
@@ -386,31 +380,5 @@ export const selectHighQualityMatches = (state: MatchmakingState) => {
     .filter((m) => m.mutualScore >= 0.8)
     .sort((a, b) => b.mutualScore - a.mutualScore)
     .slice(0, 5);
-};
-
-/**
- * Selector for recent matches
- */
-export const selectRecentMatches = (state: MatchmakingState) => {
-  return state.matches
-    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
-    .slice(0, 10);
-};
-
-/**
- * Selector for match success rate (% of fruits that got matches)
- */
-export const selectMatchSuccessRate = (state: MatchmakingState) => {
-  const totalFruits = state.apples.length + state.oranges.length;
-  if (totalFruits === 0) return 0;
-  
-  // Count unique fruits that have at least one match
-  const matchedFruitIds = new Set<string>();
-  state.matches.forEach((match) => {
-    matchedFruitIds.add(match.appleId);
-    matchedFruitIds.add(match.orangeId);
-  });
-  
-  return Math.round((matchedFruitIds.size / totalFruits) * 100);
 };
 
