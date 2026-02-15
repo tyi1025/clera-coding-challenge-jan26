@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
         orange_to_apple_score: mutualScore.fruit2ToFruit1,
         mutual_score: mutualScore.mutualScore,
         llm_response: llmResponse,
-        created_at: new Date().toISOString(),
+        created_at: new Date(),
       });
 
       matchRecords.push({

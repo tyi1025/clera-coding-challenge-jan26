@@ -46,7 +46,7 @@ export interface Match {
   orange_to_apple_score: number;
   mutual_score: number;
   llm_response: string;
-  created_at: string;
+  created_at: Date | string;
 }
 
 // ============================================================================
@@ -109,7 +109,7 @@ export async function storeApple(fruit: Fruit): Promise<StoredApple> {
   const result = await database.create<StoredApple>("apple", {
     attributes: fruit.attributes,
     preferences: fruit.preferences,
-    created_at: new Date().toISOString(),
+    created_at: new Date(),
   });
 
   if (!result || (Array.isArray(result) && result.length === 0)) {
@@ -162,7 +162,7 @@ export async function storeOrange(fruit: Fruit): Promise<StoredOrange> {
   const result = await database.create<StoredOrange>("orange", {
     attributes: fruit.attributes,
     preferences: fruit.preferences,
-    created_at: new Date().toISOString(),
+    created_at: new Date(),
   });
 
   if (!result || (Array.isArray(result) && result.length === 0)) {
@@ -234,7 +234,13 @@ export async function getFruitCounts(): Promise<{
 export async function storeMatch(match: Omit<Match, "id">): Promise<Match> {
   const database = await getDB();
 
-  const result = await database.create<Match>("match", match);
+  // Ensure created_at is a Date object, not a string
+  const matchData = {
+    ...match,
+    created_at: match.created_at instanceof Date ? match.created_at : new Date(match.created_at),
+  };
+
+  const result = await database.create<Match>("match", matchData);
 
   if (!result || (Array.isArray(result) && result.length === 0)) {
     throw new Error("Failed to store match in database: No result returned from database operation");
