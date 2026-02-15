@@ -219,12 +219,6 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [matches]);
 
-  const handleNewConversation = async () => {
-    // Randomly pick apple or orange
-    const type = Math.random() > 0.5 ? "apple" : "orange";
-    await startMatchmaking(type);
-  };
-
   return (
     <div className="min-h-screen">
       {/* Header */}
@@ -239,13 +233,20 @@ export default function DashboardPage() {
                 Creating perfect pears, one match at a time
               </p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <button
-                onClick={handleNewConversation}
+                onClick={() => startMatchmaking("apple")}
                 disabled={isLoading}
                 className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? "Matching..." : "New Conversation"}
+                {isLoading ? "Matching..." : "🍎 New Apple"}
+              </button>
+              <button
+                onClick={() => startMatchmaking("orange")}
+                disabled={isLoading}
+                className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? "Matching..." : "🍊 New Orange"}
               </button>
             </div>
           </div>

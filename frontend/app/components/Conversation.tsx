@@ -81,7 +81,7 @@ export function Conversation() {
             <p className="text-4xl">💬</p>
             <p className="mt-4 text-lg font-medium">No conversation yet</p>
             <p className="mt-2 text-sm">
-              Click &quot;New Conversation&quot; to start matchmaking
+              Click &quot;New Apple&quot; or &quot;New Orange&quot; to start matchmaking
             </p>
           </div>
         </div>
@@ -261,12 +261,9 @@ function MatchesSummary({ matches, fruitType }: MatchesSummaryProps) {
 
   return (
     <div className="mt-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm font-medium text-muted">Top Matches:</p>
-        <p className="text-xs text-muted">
-          {matches[0].matched_preferences}/{matches[0].total_preferences} preferences matched
-        </p>
-      </div>
+      <p className="text-sm font-medium text-muted">
+        Top Matches ({matches.length}):
+      </p>
 
       {matches.map((match, index) => (
         <MatchCard
@@ -314,11 +311,14 @@ function MatchCard({ match, index, fruitType }: MatchCardComponentProps) {
 
   return (
     <div className="rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950">
-      {/* Header: Match number + score */}
+      {/* Header: Match number + preference count + score */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-lg">{matchIcon}</span>
           <span className="text-sm font-medium">Match #{index + 1}</span>
+          <span className="text-xs text-muted">
+            ({match.matched_preferences}/{match.total_preferences} preferences)
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <ScoreBadge score={match.score} />
