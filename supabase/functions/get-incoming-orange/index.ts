@@ -1,9 +1,6 @@
 // Setup type definitions for built-in Supabase Runtime APIs
 import "@supabase/functions-js/edge-runtime.d.ts";
-import { generateOrange, communicateAttributes, communicatePreferences } from "../_shared/generateFruit.ts";
-import { storeOrange, getAllApples, storeMatch } from "../_shared/db.ts";
-import { findBestMatches } from "../_shared/matching.ts";
-import { generateMatchCommunication } from "../_shared/llm.ts";
+import { processFruit } from "../_shared/processFruit.ts";
 
 /**
  * Get Incoming Orange Edge Function
@@ -17,129 +14,16 @@ import { generateMatchCommunication } from "../_shared/llm.ts";
  * 6. Store match records ✅
  */
 
-// CORS headers for local development
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
 };
 
-// Maximum number of matches to return
-const MAX_MATCHES = 5;
-
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  try {
-    console.log("🍊 Processing incoming orange...");
-
-    // Step 1: Generate a new orange instance
-    const orange = generateOrange();
-    console.log("✅ Generated orange with attributes:", orange.attributes);
-
-    // Step 2: Capture the fruit's communication
-    const attributesCommunication = communicateAttributes(orange);
-    const preferencesCommunication = communicatePreferences(orange);
-    console.log("✅ Generated fruit communication");
-
-    // Step 3: Store the new orange in SurrealDB
-    const storedOrange = await storeOrange(orange);
-    console.log("✅ Orange stored in database with ID:", storedOrange.id);
-
-    // Step 4: Match the new orange to existing apples
-    const apples = await getAllApples();
-    console.log(`🔍 Found ${apples.length} apples to match against`);
-
-    const matches = findBestMatches(storedOrange, apples, MAX_MATCHES);
-    console.log(`✅ Found ${matches.length} potential matches`);
-
-    // Step 5: Generate match communication via LLM
-    const llmResponse = await generateMatchCommunication("orange", storedOrange, matches);
-    console.log("✅ Generated LLM response");
-
-    // Store match records in the database
-    const matchRecords: Array<{
-      match_id: string | undefined;
-      apple_id: string;
-      score: number;
-      mutual_score: number;
-    }> = [];
-    
-    for (const match of matches) {
-      const matchRecord = await storeMatch({
-        apple_id: String(match.fruit.id),
-        orange_id: String(storedOrange.id),
-        apple_to_orange_score: match.reverseScore,
-        orange_to_apple_score: match.score,
-        mutual_score: match.mutualScore,
-        llm_response: llmResponse,
-        created_at: new Date(),
-      });
-
-      matchRecords.push({
-        match_id: matchRecord.id,
-        apple_id: match.fruit.id,
-        score: match.score,
-        mutual_score: match.mutualScore,
-      });
-    }
-
-    console.log(`✅ Stored ${matchRecords.length} match records`);
-    console.log("🎉 Orange processing complete!");
-
-    // Return comprehensive result
-    return new Response(
-      JSON.stringify({
-        success: true,
-        fruit: {
-          id: storedOrange.id,
-          type: "orange",
-          attributes: storedOrange.attributes,
-          preferences: storedOrange.preferences,
-        },
-        communication: {
-          attributes: attributesCommunication,
-          preferences: preferencesCommunication,
-        },
-        matches: {
-          count: matches.length,
-          top_matches: matches.map((m) => {
-            return {
-              apple_id: m.fruit.id,
-              score: Math.round(m.score * 100),
-              matched_preferences: m.details.matchedPreferences,
-              total_preferences: m.details.totalPreferences,
-              details: m.details,
-              matched_fruit_attributes: m.fruit.attributes,
-              matched_fruit_preferences: m.fruit.preferences,
-              reverse_score: Math.round(m.reverseScore * 100),
-              reverse_details: m.reverseDetails,
-            };
-          }),
-        },
-        llm_response: llmResponse,
-        match_records: matchRecords,
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 200,
-      }
-    );
-  } catch (error) {
-    console.error("❌ Error processing incoming orange:", error);
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: "Failed to process incoming orange",
-        details: error instanceof Error ? error.message : "Unknown error",
-      }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
-  }
+  return await processFruit("orange", corsHeaders);
 });
