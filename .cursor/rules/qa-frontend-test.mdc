@@ -1,0 +1,18 @@
+---
+description: Rules for validating frontend TypeScript changes
+globs: frontend/**/*.{ts,tsx}
+---
+
+# Frontend QA
+
+## Running Linter
+- Run ESLint: `pnpm lint`
+
+## Type Checking
+- Run: `npx tsc --noEmit` (type check only, no build)
+- Or use your IDE's TypeScript integration
+
+## Before Committing
+- Ensure no TypeScript errors
+- Ensure no ESLint warnings/errors
+- Test the UI manually in the browser at `http://localhost:3000`

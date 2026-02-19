@@ -1,0 +1,9 @@
+---
+description: QA rules that apply to all tasks
+alwaysApply: true
+---
+
+# QA Rules
+
+- Each task MUST be linted and tested before being considered done
+- Verify changes work as expected before marking complete

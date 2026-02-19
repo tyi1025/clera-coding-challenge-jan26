@@ -1,0 +1,22 @@
+---
+description: Common commands for running the project
+alwaysApply: true
+---
+
+# Running Commands
+
+## Frontend (Next.js)
+- Navigate to frontend: `cd frontend`
+- Install dependencies: `pnpm install`
+- Development server: `pnpm dev`
+- Build: `pnpm build`
+- Lint: `pnpm lint`
+
+## Backend (Supabase Edge Functions)
+- Start Supabase: `npx supabase start` (from project root)
+- Serve edge functions: `npx supabase functions serve --no-verify-jwt`
+- Test apple endpoint: `curl http://127.0.0.1:54321/functions/v1/get-incoming-apple -H "Content-Type: application/json" -d '{}'`
+- Test orange endpoint: `curl http://127.0.0.1:54321/functions/v1/get-incoming-orange -H "Content-Type: application/json" -d '{}'`
+
+## Deno Tests
+- Run tests: `deno test` (from the function directory)

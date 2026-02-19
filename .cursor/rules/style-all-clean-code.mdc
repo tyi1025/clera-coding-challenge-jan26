@@ -1,0 +1,35 @@
+---
+description: Clean code principles for maintainable software
+alwaysApply: true
+---
+
+# Clean Code Guidelines
+
+## Constants Over Magic Numbers
+- Replace hard-coded values with named constants
+- Use descriptive constant names that explain the value's purpose
+
+## Meaningful Names
+- Variables, functions, and classes should reveal their purpose
+- Names should explain why something exists and how it's used
+
+## Single Responsibility
+- Each function should do exactly one thing
+- If a function needs a comment to explain what it does, it should be split
+
+## DRY (Don't Repeat Yourself)
+- Extract repeated code into reusable functions
+- Maintain single sources of truth
+
+## Clean Structure
+- Keep related code together
+- Organize code in a logical hierarchy
+
+## Encapsulation
+- Hide implementation details
+- Move nested conditionals into well-named functions
+
+## Smart Comments
+- Don't comment on what the code does - make the code self-documenting
+- Use comments to explain why something is done a certain way
+- Document complex algorithms and non-obvious side effects

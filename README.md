@@ -56,18 +56,20 @@ Now that we have our data and access to it, we need to implement the core of our
    - `communicatePreferences(fruit)` - Returns a human-readable description of what the fruit is looking for in a match
    - Both functions have extensive variability with multiple templates and phrasings
 
-3. **Store the new fruit in SurrealDB** 🔲 *TODO*
-   - Connect to SurrealDB instance
+3. **Store the new fruit in SurrealDB** ✅ *Implemented*
+   - Connect to SurrealDB instance at `ws://host.docker.internal:8000` (or `ws://localhost:8000` for local scripts)
    - Insert the fruit record with attributes and preferences
+   - Auto-generated IDs and timestamps
 
-4. **Match the fruit to potential partners** 🔲 *TODO*
+4. **Match the fruit to potential partners** ✅ *Implemented*
    - Query existing fruits of the opposite type from SurrealDB
-   - Calculate compatibility scores based on preference matching
-   - Return ranked matches
+   - Calculate compatibility scores based on preference matching with weighted algorithm
+   - Return ranked matches (top 5 by default)
 
-5. **Communicate matching results via LLM** 🔲 *TODO*
-   - Generate natural language response about the matches
-   - Include match explanations and compatibility scores if time allows
+5. **Communicate matching results via LLM** ✅ *Implemented*
+   - Generate natural language response using Google Gemini API
+   - Include match explanations with compatibility scores and matched preferences
+   - Fallback messaging if LLM fails
 
 #### Running the Backend Locally
 
@@ -81,6 +83,32 @@ npx supabase functions serve --no-verify-jwt
 # Test the functions
 curl http://127.0.0.1:54321/functions/v1/get-incoming-apple -H "Content-Type: application/json" -d '{}'
 curl http://127.0.0.1:54321/functions/v1/get-incoming-orange -H "Content-Type: application/json" -d '{}'
+```
+
+#### Loading Seed Data
+
+Before running matchmaking, load the initial 40 fruits from the seed data:
+
+```bash
+# From project root (requires Deno installed)
+SURREALDB_URL=ws://localhost:8000 deno run --allow-net --allow-read supabase/functions/_shared/seed.ts
+```
+
+This will:
+- Connect to your local SurrealDB instance
+- Initialize the database schema (tables and indexes)
+- Load 40 fruits (20 apples + 20 oranges) from `data/raw_apples_and_oranges.json`
+- Display a summary of what was inserted
+
+To reset and reload the data, add the `--force` flag:
+
+```bash
+SURREALDB_URL=ws://localhost:8000 deno run --allow-net --allow-read supabase/functions/_shared/seed.ts --force
+```
+
+**Note:** If you don't have Deno installed locally, install it with:
+```bash
+curl -fsSL https://deno.land/install.sh | sh
 ```
 
 #### Running the Frontend Locally
